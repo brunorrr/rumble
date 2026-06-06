@@ -73,9 +73,9 @@ Being alone in the ring while the queue still has players does **not** end the g
 if ring.length < 2  → 0%
 if queue.length === 0 → 100%
 otherwise:
-  base = 20 + (ring.length / (ring.length + queue.length)) * 60
+  base = 40 + (ring.length / (ring.length + queue.length)) * 40
   noise = random [-10, 10]
-  chance = clamp(base + noise, 10, 90)
+  chance = clamp(base + noise, 30, 90)
 ```
 
 The UI shows a deterministic preview (base without noise) as a gradient bar below the arena.

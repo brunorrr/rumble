@@ -74,9 +74,9 @@ export class RumbleService {
     if (queueLen === 0) return 100;
 
     const total = ringLen + queueLen;
-    const base = 20 + (ringLen / total) * 60;
+    const base = 40 + (ringLen / total) * 40;
     const noise = Math.random() * 20 - 10;
-    return Math.max(10, Math.min(90, base + noise));
+    return Math.max(30, Math.min(90, base + noise));
   }
 
   private generateContestants(n: number): Contestant[] {
