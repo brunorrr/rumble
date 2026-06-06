@@ -1,0 +1,180 @@
+<div class="simulation">
+
+  <!-- Header -->
+  <header class="sim-header">
+    <div class="header-brand">
+      <span class="brand-icon">🥊</span>
+      <span class="brand-text">ROYAL RUMBLE</span>
+    </div>
+
+    <div class="header-progress">
+      <div class="round-label">
+        Round <strong>{{ state().currentRound }}</strong> / {{ state().totalRounds }}
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="progressPercent()"></div>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat">
+        <span class="stat-num queue-color">{{ state().queue.length }}</span>
+        <span class="stat-lbl">Queue</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-num ring-color">{{ state().ring.length }}</span>
+        <span class="stat-lbl">In Ring</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-num elim-color">{{ state().eliminated.length }}</span>
+        <span class="stat-lbl">Eliminated</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Arena: Queue | Ring | Eliminated -->
+  <div class="arena">
+
+    <!-- Entry Queue -->
+    <aside class="panel">
+      <div class="panel-title">ENTRY QUEUE</div>
+      <div class="chip-list">
+        @for (c of state().queue; track c.id) {
+          <div class="chip" [style.--color]="getColor(c.id)">
+            <span class="chip-dot"></span>
+            <span class="chip-name">{{ c.name }}</span>
+            <span class="chip-order">{{ c.entryOrder }}</span>
+          </div>
+        }
+        @if (state().queue.length === 0) {
+          <div class="empty-msg">Queue empty</div>
+        }
+      </div>
+    </aside>
+
+    <!-- The Ring -->
+    <section class="ring-area">
+      <div class="ring-label-text">THE RING</div>
+      <div class="ring">
+        @for (c of state().ring; track c.id) {
+          <div class="chip ring-chip" [style.--color]="getColor(c.id)">
+            <span class="chip-dot"></span>
+            <span class="chip-name">{{ c.name }}</span>
+            <span class="chip-order">{{ c.entryOrder }}</span>
+          </div>
+        }
+        @if (state().ring.length === 0) {
+          <div class="ring-empty">Ring is empty</div>
+        }
+      </div>
+    </section>
+
+    <!-- Eliminated -->
+    <aside class="panel">
+      <div class="panel-title">ELIMINATED</div>
+      <div class="chip-list">
+        @for (c of state().eliminated; track c.id) {
+          <div class="chip elim-chip" [style.--color]="getColor(c.id)">
+            <span class="chip-dot"></span>
+            <span class="chip-name">{{ c.name }}</span>
+            <span class="chip-order">{{ c.entryOrder }}</span>
+          </div>
+        }
+        @if (state().eliminated.length === 0) {
+          <div class="empty-msg">None yet</div>
+        }
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Next round odds -->
+  @if (!state().isComplete) {
+    <div class="next-odds">
+      <span class="next-odds-label">ELIM CHANCE NEXT ROUND</span>
+      <div class="next-odds-track">
+        <div class="next-odds-fill" [style.width.%]="nextEliminationChance()"></div>
+      </div>
+      <span class="next-odds-value">{{ nextEliminationChance().toFixed(0) }}%</span>
+    </div>
+  }
+
+  <!-- Result banner (shown when complete) -->
+  @if (state().isComplete) {
+    <div class="result-banner">
+      @if (state().ring.length === 1) {
+        <div class="result-winner">
+          <div class="result-crown">🏆</div>
+          <div class="result-tag">WINNER</div>
+          <div class="result-name" [style.color]="getColor(state().ring[0].id)">
+            {{ state().ring[0].name }}
+          </div>
+          <div class="result-sub">Entry #{{ state().ring[0].entryOrder }}</div>
+        </div>
+      } @else if (state().ring.length > 1) {
+        <div class="result-survivors">
+          <div class="result-crown">🛡️</div>
+          <div class="result-tag">{{ state().ring.length }} SURVIVORS</div>
+          <div class="result-names">
+            @for (c of state().ring; track c.id) {
+              <span class="result-name-sm" [style.color]="getColor(c.id)">{{ c.name }}</span>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="result-empty">
+          <div class="result-crown">💀</div>
+          <div class="result-tag">NO SURVIVORS</div>
+          <div class="result-sub">The ring is empty</div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Controls -->
+  <div class="controls">
+    @if (!state().isComplete) {
+      <button class="btn btn-next" (click)="nextCycle()" [disabled]="isAutoPlaying()">
+        Next Round
+      </button>
+      <button class="btn btn-auto" (click)="toggleAutoPlay()" [class.active]="isAutoPlaying()">
+        {{ isAutoPlaying() ? '⏸ Pause' : '▶ Auto Play' }}
+      </button>
+      <select [(ngModel)]="speed" class="speed-select">
+        <option [ngValue]="2000">🐢 Slow</option>
+        <option [ngValue]="1000">🐇 Normal</option>
+        <option [ngValue]="500">⚡ Fast</option>
+        <option [ngValue]="100">🚀 Turbo</option>
+      </select>
+    }
+    <button class="btn btn-reset" (click)="reset()">↺ Reset</button>
+  </div>
+
+  <!-- Event Log -->
+  <div class="event-log">
+    <div class="log-header">EVENT LOG</div>
+    <div class="log-body">
+      @for (ev of reversedEvents(); track $index) {
+        <div class="log-row"
+          [class.log-enter]="ev.type === 'enter' || ev.type === 'initial'"
+          [class.log-elim]="ev.type === 'eliminate'">
+          <span class="log-round">{{ ev.round === 0 ? 'START' : 'Rd ' + ev.round }}</span>
+          <span class="log-who" [style.color]="getColor(ev.contestant.id)">{{ ev.contestant.name }}</span>
+          @if (ev.type === 'initial') {
+            <span class="log-action">started in the ring</span>
+          } @else if (ev.type === 'enter') {
+            <span class="log-action log-action-enter">ENTERED the ring</span>
+          } @else {
+            <span class="log-action log-action-elim">was ELIMINATED</span>
+          }
+          @if (ev.round > 0) {
+            <span class="log-meta">elim: {{ ev.eliminationChance.toFixed(0) }}% | roll: {{ ev.roll.toFixed(0) }}%</span>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+</div>
