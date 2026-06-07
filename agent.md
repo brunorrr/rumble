@@ -80,6 +80,30 @@ otherwise:
 
 The UI shows a deterministic preview (base without noise) as a gradient bar below the arena.
 
+## Moral system
+
+Each `Contestant` has a `moral: number` field, initialised to `0`.
+
+### Per-cycle update (ring players only)
+
+Every cycle, before the elimination/entry decision, all players currently in the ring have their moral ticked:
+
+```
+loss  = random 1 or 2 (50/50)
+bonus = 2 with 40% probability, else 0
+moral = moral - loss + bonus
+```
+
+### Effect on elimination
+
+When an elimination is triggered, the victim is **not** chosen at random. Instead, an inverse softmax is applied over ring players' moral values:
+
+```
+p_i = exp(-moral_i) / Σ exp(-moral_j)
+```
+
+Lower moral → higher elimination probability. The winner is sampled from this distribution. A numerical stability shift (`max` subtraction before `exp`) is applied internally.
+
 ## State model (`SimulationState`)
 
 | field | description |
@@ -91,6 +115,8 @@ The UI shows a deterministic preview (base without noise) as a gradient bar belo
 | `totalRounds` | Equal to `n` (total contestants) |
 | `events` | Log of every cycle (`CycleEvent[]`) |
 | `isComplete` | `ring.length === 1 && queue.length === 0` |
+
+`Contestant` fields: `id`, `name`, `entryOrder`, `moral`.
 
 `CycleEvent` fields: `round`, `type` (`initial` | `enter` | `eliminate`), `contestant`, `eliminationChance`, `roll`.
 
@@ -109,6 +135,17 @@ Added a visual bar below the `.arena` grid in the simulation view showing the de
 - **`simulation.ts`**: added `nextEliminationChance` computed signal using the base formula (no noise).
 - **`simulation.html`**: added `.next-odds` block between `.arena` and the result banner, hidden when `isComplete`.
 - **`simulation.scss`**: added styles for `.next-odds`, `.next-odds-label`, `.next-odds-track`, `.next-odds-fill` (green → amber → red gradient), `.next-odds-value`.
+
+### 4. Moral system + weighted elimination
+
+- **`rumble.models.ts`**: added `moral: number` to `Contestant`.
+- **`rumble.service.ts`**:
+  - `generateContestants` initialises `moral: 0`.
+  - `tickMoral(c)`: subtracts 1 or 2 randomly, adds 2 with 40% probability.
+  - `pickByInverseSoftmax(ring)`: samples the victim using `softmax(-moral)` — lowest moral = highest elimination chance.
+  - `nextCycle`: ring players are ticked via `tickMoral` before the elimination/entry decision; elimination uses `pickByInverseSoftmax` instead of a uniform random pick.
+- **`simulation.html`**: ring chips now display `c.moral` via a `chip-moral` span.
+- **`simulation.scss`**: `.chip-moral` styled in the player's color, small font, semi-bold. `.elim-chip` had `text-decoration: line-through` removed (eliminated players shown without strikethrough).
 
 ### 3. Game logic fix — correct round counting and win condition
 

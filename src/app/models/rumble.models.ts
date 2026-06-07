@@ -2,6 +2,7 @@ export interface Contestant {
   id: number;
   name: string;
   entryOrder: number;
+  moral: number;
 }
 
 export type EventType = 'initial' | 'enter' | 'eliminate';

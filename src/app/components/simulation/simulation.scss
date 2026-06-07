@@ -226,6 +226,13 @@
     font-size: 0.72rem;
     white-space: nowrap;
   }
+
+  .chip-moral {
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--color);
+  }
 }
 
 .ring-chip {
@@ -239,7 +246,6 @@
 
 .elim-chip {
   opacity: 0.4;
-  text-decoration: line-through;
 }
 
 .empty-msg {

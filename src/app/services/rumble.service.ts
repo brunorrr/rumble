@@ -32,14 +32,14 @@ export class RumbleService {
     const elimChance = this.calcEliminationChance(ring.length, queue.length);
     const roll = Math.random() * 100;
 
-    const newRing = [...ring];
+    const newRing = ring.map(c => this.tickMoral(c));
     const newQueue = [...queue];
     const newEliminated = [...eliminated];
     let event: CycleEvent;
     let newRound = currentRound;
 
     if (roll < elimChance || newQueue.length === 0) {
-      const idx = Math.floor(Math.random() * newRing.length);
+      const idx = this.pickByInverseSoftmax(newRing);
       const [c] = newRing.splice(idx, 1);
       newEliminated.push(c);
       event = { round: newRound, type: 'eliminate', contestant: c, eliminationChance: elimChance, roll };
@@ -79,11 +79,33 @@ export class RumbleService {
     return Math.max(30, Math.min(90, base + noise));
   }
 
+  private tickMoral(c: Contestant): Contestant {
+    const loss = Math.random() < 0.5 ? 1 : 2;
+    const bonus = Math.random() < 0.4 ? 2 : 0;
+    return { ...c, moral: c.moral - loss + bonus };
+  }
+
+  private pickByInverseSoftmax(ring: Contestant[]): number {
+    const negMorals = ring.map(c => -c.moral);
+    const max = Math.max(...negMorals);
+    const exps = negMorals.map(v => Math.exp(v - max));
+    const sum = exps.reduce((a, b) => a + b, 0);
+    const probs = exps.map(v => v / sum);
+    const rand = Math.random();
+    let cumulative = 0;
+    for (let i = 0; i < probs.length; i++) {
+      cumulative += probs[i];
+      if (rand < cumulative) return i;
+    }
+    return probs.length - 1;
+  }
+
   private generateContestants(n: number): Contestant[] {
     return Array.from({ length: n }, (_, i) => ({
       id: i + 1,
       name: '#' + (Math.floor(Math.random() * 900) + 100),
       entryOrder: i + 1,
+      moral: 0,
     }));
   }
 
